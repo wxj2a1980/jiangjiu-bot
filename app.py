@@ -12,7 +12,7 @@ app = Flask(__name__)
 # === 1. 你的配置（已填好）===
 CORP_ID = "wwd466aa54140422a7"
 AGENT_ID = "1000002"
-CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_HFIW8GfkPyaJLiM2W7-us"
+CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_PaN8iiK0ZUayPlLTB-LOc"
 
 # 必须和企业微信后台完全一致（已填入你提供的）
 TOKEN = "dSw4GAuALapXQn4FhTajzTqKornmJN8X"
@@ -34,31 +34,42 @@ def get_token():
         return None
 
 def qwen_ai(msg):
-    """通义千问AI逻辑"""
+    print(f"正在问AI: {msg}") # 打印日志：确认在问什么
     prompt = f"你是15年酱酒老炮，客户说：{msg}\n推荐：飞天2690、15年坤沙899、赖茅358、王子138\n用酒友聊天语气回复："
     
-    # ⚠️ 注意：你原来的代码少了这个 headers 鉴权，AI是不会理你的
     headers = {
         "Authorization": f"Bearer {QWEN_API_KEY}",
         "Content-Type": "application/json"
     }
     
+    # ⚠️ 这里把模型改回 turbo 先测试，因为 plus 有时候免费号不能用
     payload = {
-        "model": "qwen-plus",
+        "model": "qwen-turbo", 
         "input": {"messages": [{"role": "user", "content": prompt}]}
     }
     
     try:
-        # 这里加了 headers
-        r = requests.post("https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation", headers=headers, json=payload, timeout=10).json()
-        if "output" in r:
+        response = requests.post(
+            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation", 
+            headers=headers, 
+            json=payload, 
+            timeout=10
+        )
+        
+        # === 关键调试代码 ===
+        r = response.json()
+        if "output" in r and "choices" in r["output"]:
+            # 成功拿到回复
+            print("✅ AI回复成功")
             return r["output"]["choices"][0]["message"]["content"]
         else:
-            print(f"AI报错: {r}") # 在日志里看错误
-            return "老铁，刚才信号闪了一下，你刚说啥来着？"
+            # 拿到错误信息，打印出来！
+            print(f"❌ 阿里云报错: {json.dumps(r, ensure_ascii=False)}")
+            return f"（系统调试）AI连接失败，错误代码：{r.get('code', '未知')}"
+            
     except Exception as e:
-        print(f"请求错误: {e}")
-        return "老铁，我这会儿在酒库忙，稍后回你哈！"
+        print(f"❌ 请求彻底失败: {e}")
+        return "老铁，服务器网线被人拔了，稍等会儿哈。"
 
 @app.route('/', methods=['GET', 'POST'])
 def weixin():
@@ -105,16 +116,23 @@ def weixin():
                 reply_content = qwen_ai(user_input)
 
             # 5. 主动把回复发给客户
-            send_url = f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={get_token()}"
-            payload = {
-                "touser": user_id,
-                "msgtype": "text",
-                "agentid": AGENT_ID,
-                "text": {"content": reply_content}
-            }
-            requests.post(send_url, json=payload)
-        
-        return "success"
+            # ... 上面的代码不变 ...
+    
+    # 回消息
+    send_url = f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={get_token()}"
+    payload = {
+        "touser": FromUserName,
+        "msgtype": "text",
+        "agentid": AGENT_ID,
+        "text": {"content": reply}
+    }
+    
+    # === 修改这里，看看微信那边接收成功没 ===
+    res = requests.post(send_url, json=payload).json()
+    print(f"📨 发送给微信的结果: {res}")
+    
+    return "success"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
