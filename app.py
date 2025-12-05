@@ -11,7 +11,7 @@ CORP_ID = "wwd466aa54140422a7"
 AGENT_ID = "1000002"
 CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_HFIW8GfkPyaJLiM2W7-us"
 TOKEN = "dSw4GAuALapXQn4FhTajzTqKornmJN8X"
-AES_KEY =XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI# 回调用的Token，随便填
+AES_KEY ="XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI"# 回调用的Token，随便填
 # =================================
 
 def get_token():
@@ -61,4 +61,5 @@ def weixin():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
 
