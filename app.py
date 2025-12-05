@@ -1,7 +1,8 @@
-# app.py  —— 45岁酱酒老炮专属极简版（已为你填好所有配置）
-from flask import Flask, request
+# app.py  —— 45岁酱酒老炮专属终极修复版（已修复验证返回格式）
+from flask import Flask, request, Response
 import requests
 import json
+import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 
@@ -27,33 +28,35 @@ def qwen_ai(msg):
 
 @app.route('/', methods=['GET', 'POST'])
 def weixin():
-    if request.method == 'GET':                     # 企业微信验证
+    if request.method == 'GET':
+        # 修复验证：返回纯文本 echostr（不带引号，Content-Type: text/plain）
         echostr = request.args.get('echostr')
-        return echostr
+        if echostr:
+            return Response(echostr, content_type='text/plain')
+        return "success", 200
     
-    data = request.data.decode('utf-8')
-    if "xml" in data:
-        import xml.etree.ElementTree as ET
-        root = ET.fromstring(data)
-        FromUserName = root.find('FromUserName').text
-        Content = root.find('Content').text if root.find('Content') is not None else ""
-        
-        if "小样" in Content or "尝" in Content:
-            reply = "老铁，把姓名+电话+地址发我，免费寄2支50ml小样，喝完再买！"
-        else:
-            reply = qwen_ai(Content)
-        
-        # 回消息
-        url = f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={get_token()}"
-        payload = {
-            "touser": FromUserName,
-            "msgtype": "text",
-            "agentid": AGENT_ID,
-            "text": {"content": reply}
-        }
-        requests.post(url, json=payload)
+    # POST 处理消息（原逻辑不变）
+    data = request.data
+    root = ET.fromstring(data)
+    FromUserName = root.find('FromUserName').text
+    Content = root.find('Content').text if root.find('Content') is not None else ""
+    
+    if "小样" in Content or "尝" in Content:
+        reply = "老铁，把姓名+电话+地址发我，免费寄2支50ml小样，喝完再买！"
+    else:
+        reply = qwen_ai(Content)
+    
+    # 回消息
+    url = f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={get_token()}"
+    payload = {
+        "touser": FromUserName,
+        "msgtype": "text",
+        "agentid": AGENT_ID,
+        "text": {"content": reply}
+    }
+    requests.post(url, json=payload)
     
     return "success"
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
