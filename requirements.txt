@@ -4,3 +4,4 @@ wechatpy==1.8.18
 cryptography==41.0.7
 cffi==1.16.0
 xmltodict==0.13.0
+gunicorn
