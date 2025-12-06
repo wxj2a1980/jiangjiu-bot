@@ -1,132 +1,138 @@
-# app.py —— 45岁酱酒老炮专属终极修复版（适配 Railway 部署）
-from flask import Flask, request, abort
-import requests
+# -*- coding: utf-8 -*-
+import os
 import json
-from xml.etree import ElementTree as ET
+import requests
+from flask import Flask, request, abort
 from wechatpy.enterprise.crypto import WeChatCrypto
 from wechatpy.exceptions import InvalidSignatureException
-from wechatpy.enterprise import parse_message
-import os
+from wechatpy.enterprise import parse_message, create_reply
 
 app = Flask(__name__)
 
-# === 配置（请确保环境变量也设置了敏感信息更安全）===
+# ==========================================
+# 🔴 配置区 (部署前一定要检查这几个填对了没)
+# ==========================================
 CORP_ID = "wwd466aa54140422a7"
 AGENT_ID = "1000002"
-CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_PaN8iiK0ZUayPlLTB-LOc"
+CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_PaN8iiK0ZUayPlLTB-LOc" # 替换真的
+TOKEN = "dSw4GAuALapXQn4FhTajzTqKornmJN8X"           # 替换真的
+AES_KEY = "XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI" # 替换真的
 
-TOKEN = "dSw4GAuALapXQn4FhTajzTqKornmJN8X"
-AES_KEY = "XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI"
+# 🔴 必须填写真实的阿里云 Key，否则 AI 不会回话
+# 申请地址: https://dashscope.console.aliyun.com/apiKey
+QWEN_API_KEY = "key:sk-b7f0487ed59749ddacb36f0602f4f6b9" 
 
-QWEN_API_KEY = "sk-b7f0487ed59749ddacb36f0602f4f6b9"
+# ==========================================
 
-# 初始化解密器
-crypto = WeChatCrypto(TOKEN, AES_KEY, CORP_ID)
+# 初始化加密器
+try:
+    crypto = WeChatCrypto(TOKEN, AES_KEY, CORP_ID)
+except Exception as e:
+    print(f"❌ 加密配置错误，请检查 EncodingAESKey 是否是43位: {e}")
 
-def get_token():
-    url = f"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={CORP_ID}&corpsecret={CORP_SECRET}"
-    try:
-        resp = requests.get(url, timeout=5)
-        data = resp.json()
-        if data.get("errcode") == 0:
-            return data.get("access_token")
-        else:
-            print(f"❌ 获取 token 失败: {data}")
-            return None
-    except Exception as e:
-        print(f"❌ 获取 token 异常: {e}")
-        return None
-
+# 通义千问 AI (修复版)
 def qwen_ai(msg):
-    print(f"正在问AI: {msg}")
-    prompt = f"你是15年酱酒老炮，客户说：{msg}\n推荐：飞天2690、15年坤沙899、赖茅358、王子138\n用酒友聊天语气回复："
+    print(f"💬 收到提问: {msg}")
     
+    # 1. 检查 Key 是否填写
+    if "sk-" not in QWEN_API_KEY:
+        return "老铁，我的 API Key 还没填，让老板去阿里云申请一个吧！"
+
+    # 2. 准备请求数据 (这是阿里云官方标准格式)
+    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
     headers = {
         "Authorization": f"Bearer {QWEN_API_KEY}",
         "Content-Type": "application/json"
     }
+    prompt = f"你是15年酱酒老炮，客户说：{msg}\n推荐：飞天2690、15年坤沙899、赖茅358、王子138\n要求：用酒友聊天语气，50字内回复，不要废话。"
     
     payload = {
         "model": "qwen-turbo",
         "input": {
             "messages": [{"role": "user", "content": prompt}]
+        },
+        "parameters": {
+            "result_format": "message"  # 关键：加上这个参数，返回格式才对
         }
     }
-    
+
+    # 3. 发送请求
     try:
-        response = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/inference",
-            headers=headers,
-            json=payload,
-            timeout=10
-        )
-        
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
         r = response.json()
-        if r.get("code") == 200 and "output" in r:
-            content = r["output"]["choices"][0]["message"]["content"]
-            print("✅ AI回复成功")
-            return content.strip()
+        
+        # 4. 解析结果 (兼容性处理)
+        if response.status_code == 200 and "output" in r:
+            # 成功拿到回复
+            ai_msg = r["output"]["choices"][0]["message"]["content"]
+            print(f"✅ AI回复: {ai_msg}")
+            return ai_msg
         else:
-            errmsg = r.get("message", "未知错误")
-            print(f"❌ DashScope 报错: {json.dumps(r, ensure_ascii=False)}")
-            return f"（AI故障）{errmsg}"
-
+            # 阿里云报错
+            print(f"❌ API 报错: {r}")
+            err_msg = r.get('message', '未知错误')
+            return f"哥们，AI大脑短路了({err_msg})，待会再聊。"
+            
     except Exception as e:
-        print(f"❌ 请求彻底失败: {e}")
-        return "老铁，服务器网线被人拔了，稍等会儿哈。"
+        print(f"❌ 网络请求挂了: {e}")
+        return "老铁，刚才信号不好，没听清你说啥。"
 
+# 微信消息处理
 @app.route('/', methods=['GET', 'POST'])
-def weixin():
+def wechat():
+    # 获取 URL 参数
     signature = request.args.get('msg_signature', '')
     timestamp = request.args.get('timestamp', '')
     nonce = request.args.get('nonce', '')
 
+    # --- 1. 验证 (GET) ---
     if request.method == 'GET':
         echostr = request.args.get('echostr', '')
         try:
-            decrypted_echo = crypto.check_signature(signature, timestamp, nonce, echostr)
-            return decrypted_echo
+            return crypto.check_signature(signature, timestamp, nonce, echostr)
         except InvalidSignatureException:
             abort(403)
 
-    if request.method == 'POST':
+    # --- 2. 接收消息 (POST) ---
+    else:
         try:
+            # A. 解密 XML
             decrypted_xml = crypto.decrypt_message(
                 request.data,
                 signature,
                 timestamp,
                 nonce
             )
+            
+            # B. 解析消息对象
             msg = parse_message(decrypted_xml)
+            
+            reply_content = "收到" # 默认回复
 
+            # C. 业务逻辑
             if msg.type == 'text':
-                user_input = msg.content
-                if "小样" in user_input or "尝" in user_input:
+                content = msg.content.strip()
+                if "小样" in content or "尝" in content:
                     reply_content = "老铁，把姓名+电话+地址发我，免费寄2支50ml小样，喝完再买！"
                 else:
-                    reply_content = qwen_ai(user_input)
+                    reply_content = qwen_ai(content)
+            
+            elif msg.type == 'event' and msg.event == 'subscribe':
+                reply_content = "欢迎加入老张酱酒私域！我是玩了15年酱酒的老炮，想喝什么酒？直接跟我说！"
 
-                reply_xml = f"""
-<xml>
-    <ToUserName><![CDATA[{msg.source}]]></ToUserName>
-    <FromUserName><![CDATA[{CORP_ID}]]></FromUserName>
-    <CreateTime>{int(__import__('time').time())}</CreateTime>
-    <MsgType><![CDATA[text]]></MsgType>
-    <Content><![CDATA[{reply_content}]]></Content>
-</xml>"""
-                
-                encrypted_reply = crypto.encrypt_message(reply_xml, nonce, timestamp)
-                return encrypted_reply
-
-            return "success"
+            # D. 加密回复 (使用 create_reply 自动生成 XML，防止手动拼接出错)
+            reply = create_reply(reply_content, msg)
+            xml_data = reply.render()
+            encrypted_response = crypto.encrypt_message(xml_data, nonce, timestamp)
+            
+            return encrypted_response
 
         except InvalidSignatureException:
             abort(403)
         except Exception as e:
-            print(f"❌ 消息处理异常: {e}")
-            return "success"
+            print(f"❌ 处理流程异常: {e}")
+            return "success" # 出错也返回 success 避免微信重试
 
 if __name__ == '__main__':
-    # ✅ 关键修复：使用环境变量 PORT
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)  # debug=False 更稳定
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
