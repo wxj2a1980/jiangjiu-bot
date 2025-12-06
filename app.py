@@ -20,7 +20,7 @@ AES_KEY = "XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI" # 替换真的
 
 # 🔴 必须填写真实的阿里云 Key，否则 AI 不会回话
 # 申请地址: https://dashscope.console.aliyun.com/apiKey
-QWEN_API_KEY = "sk-b7f0487ed59749ddacb36f0602f4f6b9" 
+QWEN_API_KEY = "sk-0af8ffb0b2f64e5fbdaefc683a0a1d30" 
 
 # ==========================================
 
@@ -39,7 +39,7 @@ def qwen_ai(msg):
         return "老铁，我的 API Key 还没填，让老板去阿里云申请一个吧！"
 
     # 2. 准备请求数据 (这是阿里云官方标准格式)
-    url = "https://dashscope.aliyuncs.com/api/v1/inference"
+    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
     headers = {
         "Authorization": f"Bearer {QWEN_API_KEY}",
         "Content-Type": "application/json"
