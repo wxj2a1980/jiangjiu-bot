@@ -12,18 +12,18 @@ app = Flask(__name__)
 # ========= 配置信息 =========
 CORP_ID = "wwd466aa54140422a7"
 AGENT_ID = "1000002"
-CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_HFIW8GfkPyaJLiM2W7-us"
-TOKEN = "saucejiumaotai2025"
-EncodingAESKey = "0123456789abcdefghijklmnopqrstuvwxyzABCDE"
+CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_PaN8iiK0ZUayPlLTB-LOc"
+TOKEN = "dSw4GAuALapXQn4FhTajzTqKornmJN8X"
+EncodingAESKey = "XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI"
 
 # !!! 这里的 Key 必须填 !!! 
 # 通义千问虽然有免费额度，但必须申请 API KEY 才能调通，否则报错
 # 申请地址：https://dashscope.console.aliyun.com/apiKey
-DASHSCOPE_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxx" 
+DASHSCOPE_API_KEY = "key:sk-b7f0487ed59749ddacb36f0602f4f6b9" 
 
 # 库存与配置
 WINES = "飞天茅台2690、15年坤沙899、赖茅传承358、王子酒138"
-QWEN_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+QWEN_URL = "https://dashscope.aliyuncs.com/api/v1/inference"
 
 # 初始化微信加解密工具
 crypto = WeChatCrypto(TOKEN, EncodingAESKey, CORP_ID)
@@ -141,3 +141,4 @@ if __name__ == '__main__':
     # 修正：必须监听 0.0.0.0 且读取环境变量 PORT
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
