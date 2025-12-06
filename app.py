@@ -8,9 +8,12 @@ from wechatpy.enterprise import parse_message, create_reply
 app = Flask(__name__)
 
 # === 只需要改这三个，必须和企业微信后台一模一样 ===
+CORP_ID = "wwd466aa54140422a7"
+AGENT_ID = "1000002"
+CORP_SECRET = "4oZPE0luv8D2nRjv2g-MP_PaN8iiK0ZUayPlLTB-LOc"
 TOKEN = "dSw4GAuALapXQn4FhTajzTqKornmJN8X"
 AES_KEY = "XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI"
-CORP_ID = "wwd466aa54140422a7"
+QWEN_API_KEY = "key:sk-b7f0487ed59749ddacb36f0602f4f6b9"
 
 crypto = WeChatCrypto(TOKEN, AES_KEY, CORP_ID)
 
@@ -44,3 +47,4 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
