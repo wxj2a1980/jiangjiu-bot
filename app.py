@@ -39,7 +39,7 @@ def qwen_ai(msg):
         return "老铁，我的 API Key 还没填，让老板去阿里云申请一个吧！"
 
     # 2. 准备请求数据 (这是阿里云官方标准格式)
-    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+    url = "https://dashscope.aliyuncs.com/api/v1/inference"
     headers = {
         "Authorization": f"Bearer {QWEN_API_KEY}",
         "Content-Type": "application/json"
@@ -136,3 +136,4 @@ def wechat():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
