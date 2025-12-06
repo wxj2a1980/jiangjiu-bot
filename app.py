@@ -2,6 +2,7 @@
 from flask import Flask, request, abort
 import requests
 import json
+from xml.etree import ElementTree as ET
 
 # 引入微信官方解密库（必须要有这个才能通过验证）
 from wechatpy.enterprise.crypto import WeChatCrypto
@@ -20,7 +21,7 @@ TOKEN = "dSw4GAuALapXQn4FhTajzTqKornmJN8X"
 AES_KEY = "XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI"
 
 # !!! 这里的 key 需要你自己填一下通义千问的 key，否则AI不回话 !!!
-QWEN_API_KEY = "sk-b7f0487ed59749ddacb36f0602f4f6b9" 
+QWEN_API_KEY = "sk-b7f0487ed59749ddacb36f0602f4f6b9"
 # =================================
 
 # 初始化“开锁师傅”（解密器）
@@ -97,6 +98,7 @@ def weixin():
     # === 处理消息 (POST请求) ===
     if request.method == 'POST':
         try:
+            # 解密消息
             decrypted_xml = crypto.decrypt_message(
                 request.data,
                 signature,
@@ -105,36 +107,9 @@ def weixin():
             )
             msg = parse_message(decrypted_xml)
             
+            reply_content = "收到！"
+
             # 只处理文本消息
             if msg.type == 'text':
                 user_input = msg.content
-                if "小样" in user_input or "尝" in user_input:
-                    reply_content = "老铁，把姓名+电话+地址发我，免费寄2支50ml小样，喝完再买！"
-                else:
-                    reply_content = qwen_ai(user_input)
-
-                # 发送回复
-                token = get_token()
-                if token:
-                    send_url = f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={token}"
-                    payload = {
-                        "touser": msg.source,      # ✅ 正确用户ID
-                        "msgtype": "text",
-                        "agentid": AGENT_ID,
-                        "text": {"content": reply_content}  # ✅ 正确变量名
-                    }
-                    res = requests.post(send_url, json=payload).json()
-                    print(f"📨 发送给微信的结果: {res}")
-                else:
-                    print("❌ 无法获取 access_token，跳过发送")
-            # 非文本消息直接忽略
-
-        except InvalidSignatureException:
-            abort(403)
-        except Exception as e:
-            print(f"❌ 消息处理异常: {e}")
-
-        return "success"  # ✅ 微信要求必须返回 success
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+                if "小样" in user
