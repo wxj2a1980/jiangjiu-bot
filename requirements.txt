@@ -1,4 +1,5 @@
 flask
 requests
-wechatpy
+wechatpy[enterprise]
 cryptography
+
