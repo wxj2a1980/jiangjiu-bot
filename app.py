@@ -24,7 +24,7 @@ AES_KEY = "XiuEuk1bipzf75LPvmIwuBGx4WvLGYp6T4R2QHlQtJI" # 替换真的AESKey
 
 # 3. 阿里云通义千问 API KEY (关键！)
 # 没有Key，AI就是哑巴。申请地址: https://dashscope.console.aliyun.com/apiKey
-QWEN_API_KEY = "key:sk-b7f0487ed59749ddacb36f0602f4f6b9" 
+QWEN_API_KEY = "sk-0af8ffb0b2f64e5fbdaefc683a0a1d30" 
 
 # ==========================================
 
@@ -132,3 +132,4 @@ def wechat():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
